@@ -1,3 +1,5 @@
+import { NavLink } from "react-router-dom";
+
 export default function Sidebar() {
   return (
     <aside className="w-56 bg-panel border-r border-panelBorder p-4">
@@ -6,21 +8,27 @@ export default function Sidebar() {
       </p>
 
       <nav className="space-y-2 text-sm">
-        <div className="text-primary font-semibold">
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) =>
+            isActive
+              ? "block text-primary font-semibold"
+              : "block text-textMuted hover:text-textPrimary"
+          }
+        >
           Dashboard
-        </div>
+        </NavLink>
 
-        <div className="text-textMuted hover:text-textPrimary cursor-pointer">
+        <NavLink
+          to="/backtesting"
+          className={({ isActive }) =>
+            isActive
+              ? "block text-primary font-semibold"
+              : "block text-textMuted hover:text-textPrimary"
+          }
+        >
           Backtesting
-        </div>
-
-        <div className="text-textMuted hover:text-textPrimary cursor-pointer">
-          Strategies
-        </div>
-
-        <div className="text-textMuted hover:text-textPrimary cursor-pointer">
-          Trades
-        </div>
+        </NavLink>
       </nav>
     </aside>
   );

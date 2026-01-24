@@ -1,15 +1,16 @@
+import StrategyComparison from "./StrategyComparison";
+
 type Strategy = {
   name: string;
+  equity: number;
   pnl: number;
 };
 
-const strategies: Strategy[] = [
-  { name: "Momentum", pnl: 4200 },
-  { name: "Mean Reversion", pnl: 2800 },
-  { name: "Breakout", pnl: -1200 },
-];
-
-export default function Leaderboard() {
+export default function Leaderboard({
+  strategies,
+}: {
+  strategies: Strategy[];
+}) {
   return (
     <div className="bg-panel border border-panelBorder p-6 rounded-xl">
       <h3 className="text-sm font-semibold text-textPrimary mb-4">
@@ -19,25 +20,33 @@ export default function Leaderboard() {
       <div className="space-y-3">
         {strategies.map((s, i) => (
           <div
-            key={i}
+            key={s.name}
             className="flex justify-between items-center text-sm"
           >
-            <span className="text-textPrimary">
-              {s.name}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-textMuted">
+                #{i + 1}
+              </span>
+              <span className="text-textPrimary font-medium">
+                {s.name}
+              </span>
+            </div>
 
             <span
               className={
                 s.pnl >= 0
-                  ? "text-primary font-medium"
-                  : "text-danger font-medium"
+                  ? "text-primary font-semibold"
+                  : "text-danger font-semibold"
               }
             >
-              ₹{s.pnl}
+              {s.pnl >= 0 ? "+" : ""}₹{s.pnl.toLocaleString()}
             </span>
           </div>
         ))}
       </div>
     </div>
   );
+  {/* Strategy Comparison */}
+  <StrategyComparison strategies={strategies} />
+
 }
