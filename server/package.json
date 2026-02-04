@@ -1,0 +1,16 @@
+{
+  "name": "quantedge-backend",
+  "type": "module",
+  "scripts": {
+    "dev": "ts-node index.ts"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "mongoose": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.25",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

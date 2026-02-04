@@ -31,6 +31,7 @@ function exportCSV(rows: Record<string, any>[], filename: string) {
   a.href = url;
   a.download = filename;
   a.click();
+
   URL.revokeObjectURL(url);
 }
 
@@ -143,10 +144,28 @@ export default function Backtesting() {
       <h1 className="text-lg font-semibold">Backtesting</h1>
 
       {/* PARAMETERS */}
-      <div className="flex gap-4 text-sm">
-        <input type="number" value={capital} onChange={(e) => setCapital(+e.target.value)} />
-        <input type="number" value={lotSize} onChange={(e) => setLotSize(+e.target.value)} />
-        <input type="number" value={fee} onChange={(e) => setFee(+e.target.value)} />
+      <div className="flex gap-3 text-sm">
+        <input
+          type="number"
+          value={capital}
+          onChange={(e) => setCapital(+e.target.value)}
+          className="border p-2 rounded w-32"
+          placeholder="Capital"
+        />
+        <input
+          type="number"
+          value={lotSize}
+          onChange={(e) => setLotSize(+e.target.value)}
+          className="border p-2 rounded w-32"
+          placeholder="Lot Size"
+        />
+        <input
+          type="number"
+          value={fee}
+          onChange={(e) => setFee(+e.target.value)}
+          className="border p-2 rounded w-24"
+          placeholder="Fee"
+        />
       </div>
 
       <button
@@ -158,7 +177,7 @@ export default function Backtesting() {
             ...h,
           ]);
         }}
-        className="bg-primary px-4 py-2 rounded"
+        className="bg-black text-white px-4 py-2 rounded"
       >
         Run Backtest
       </button>
@@ -166,27 +185,52 @@ export default function Backtesting() {
       {/* RESULTS */}
       {results &&
         Object.entries(results).map(([strategy, result]) => (
-          <div key={strategy} className="border p-4 rounded">
-            <h2>{strategy} — P&L ₹{result.totalPnL}</h2>
+          <div key={strategy} className="border p-4 rounded space-y-4">
+            <h2 className="font-semibold">
+              {strategy} — P&L ₹{result.totalPnL}
+            </h2>
 
-            <button
-              onClick={() =>
-                exportCSV(
-                  result.trades.map((t, i) => ({ i, ...t })),
-                  `${strategy}-trades.csv`
-                )
-              }
-            >
-              Export Trades CSV
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() =>
+                  exportCSV(
+                    result.trades.map((t, i) => ({ trade: i + 1, ...t })),
+                    `${strategy}-trades.csv`
+                  )
+                }
+                className="text-xs border px-3 py-1 rounded"
+              >
+                Export Trades
+              </button>
+
+              <button
+                onClick={() =>
+                  exportCSV(
+                    result.equityCurve.map((v, i) => ({
+                      step: i,
+                      equity: v,
+                    })),
+                    `${strategy}-equity.csv`
+                  )
+                }
+                className="text-xs border px-3 py-1 rounded"
+              >
+                Export Equity
+              </button>
+            </div>
 
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={result.equityCurve.map((v, i) => ({ i, v }))}>
-                  <XAxis dataKey="i" />
+                <LineChart
+                  data={result.equityCurve.map((v, i) => ({
+                    step: i,
+                    equity: v,
+                  }))}
+                >
+                  <XAxis dataKey="step" />
                   <YAxis />
                   <Tooltip />
-                  <Line dataKey="v" stroke="#22c55e" />
+                  <Line dataKey="equity" stroke="#22c55e" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -196,11 +240,11 @@ export default function Backtesting() {
       {/* HISTORY */}
       {history.length > 0 && (
         <div className="border p-4 rounded">
-          <h3>History</h3>
+          <h3 className="font-semibold mb-2">Backtest History</h3>
           {history.map((h) => (
             <div
               key={h.id}
-              className="cursor-pointer"
+              className="text-xs cursor-pointer hover:underline"
               onClick={() => setResults(h.res)}
             >
               {h.time}
