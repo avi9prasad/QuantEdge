@@ -11,7 +11,6 @@ import {
 /* =======================
    CSV EXPORT
 ======================= */
-
 function exportCSV(rows: Record<string, any>[], filename: string) {
   if (!rows || rows.length === 0) return;
 
@@ -38,18 +37,8 @@ function exportCSV(rows: Record<string, any>[], filename: string) {
 /* =======================
    TYPES
 ======================= */
-
-type Candle = {
-  time: string;
-  price: number;
-};
-
-type Trade = {
-  entryPrice: number;
-  exitPrice: number;
-  pnl: number;
-};
-
+type Candle = { time: string; price: number };
+type Trade = { entryPrice: number; exitPrice: number; pnl: number };
 type StrategyResult = {
   equityCurve: number[];
   trades: Trade[];
@@ -59,22 +48,17 @@ type StrategyResult = {
 /* =======================
    MARKET DATA
 ======================= */
-
 function generateMarketData(len = 120): Candle[] {
   let price = 100;
   return Array.from({ length: len }, (_, i) => {
     price += Math.random() * 4 - 2;
-    return {
-      time: `T${i}`,
-      price: Number(Math.max(price, 1).toFixed(2)),
-    };
+    return { time: `T${i}`, price: Number(price.toFixed(2)) };
   });
 }
 
 /* =======================
    STRATEGIES
 ======================= */
-
 function momentumStrategy(data: Candle[]): Trade[] {
   const trades: Trade[] = [];
   let entry: number | null = null;
@@ -83,7 +67,6 @@ function momentumStrategy(data: Candle[]): Trade[] {
     if (data[i].price > data[i - 1].price && entry === null) {
       entry = data[i].price;
     }
-
     if (data[i].price < data[i - 1].price && entry !== null) {
       trades.push({
         entryPrice: entry,
@@ -105,16 +88,14 @@ function meanReversionStrategy(data: Candle[]): Trade[] {
 }
 
 /* =======================
-   BACKTEST ENGINE (PARAMETERIZED)
+   BACKTEST ENGINE
 ======================= */
-
 function runMultiStrategyBacktest(
   capital: number,
   lotSize: number,
   fee: number
 ): Record<string, StrategyResult> {
   const data = generateMarketData();
-
   const strategies = {
     Momentum: momentumStrategy,
     MeanReversion: meanReversionStrategy,
@@ -145,9 +126,7 @@ function runMultiStrategyBacktest(
 /* =======================
    PAGE
 ======================= */
-
 export default function Backtesting() {
-  // ✅ STATE MUST BE INSIDE COMPONENT
   const [capital, setCapital] = useState(100000);
   const [lotSize, setLotSize] = useState(100);
   const [fee, setFee] = useState(20);
@@ -155,109 +134,80 @@ export default function Backtesting() {
   const [results, setResults] =
     useState<Record<string, StrategyResult> | null>(null);
 
+  const [history, setHistory] = useState<
+    { id: number; time: string; res: any }[]
+  >([]);
+
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-lg font-semibold text-textPrimary">
-        Backtesting
-      </h1>
+      <h1 className="text-lg font-semibold">Backtesting</h1>
 
       {/* PARAMETERS */}
       <div className="flex gap-4 text-sm">
-        <input
-          type="number"
-          value={capital}
-          onChange={(e) => setCapital(+e.target.value)}
-          className="bg-panel border p-2 rounded w-32"
-          placeholder="Capital"
-        />
-        <input
-          type="number"
-          value={lotSize}
-          onChange={(e) => setLotSize(+e.target.value)}
-          className="bg-panel border p-2 rounded w-32"
-          placeholder="Lot Size"
-        />
-        <input
-          type="number"
-          value={fee}
-          onChange={(e) => setFee(+e.target.value)}
-          className="bg-panel border p-2 rounded w-24"
-          placeholder="Fee"
-        />
+        <input type="number" value={capital} onChange={(e) => setCapital(+e.target.value)} />
+        <input type="number" value={lotSize} onChange={(e) => setLotSize(+e.target.value)} />
+        <input type="number" value={fee} onChange={(e) => setFee(+e.target.value)} />
       </div>
 
       <button
-        onClick={() =>
-          setResults(runMultiStrategyBacktest(capital, lotSize, fee))
-        }
-        className="bg-primary text-black px-4 py-2 rounded font-semibold"
+        onClick={() => {
+          const res = runMultiStrategyBacktest(capital, lotSize, fee);
+          setResults(res);
+          setHistory((h) => [
+            { id: Date.now(), time: new Date().toLocaleString(), res },
+            ...h,
+          ]);
+        }}
+        className="bg-primary px-4 py-2 rounded"
       >
-        Run Multi-Strategy Backtest
+        Run Backtest
       </button>
 
+      {/* RESULTS */}
       {results &&
         Object.entries(results).map(([strategy, result]) => (
-          <div
-            key={strategy}
-            className="bg-panel border border-panelBorder p-4 rounded-xl space-y-4"
-          >
-            <h2 className="font-semibold text-textPrimary">
-              {strategy} — P&L ₹{result.totalPnL}
-            </h2>
+          <div key={strategy} className="border p-4 rounded">
+            <h2>{strategy} — P&L ₹{result.totalPnL}</h2>
 
-            {/* CSV BUTTONS */}
-            <div className="flex gap-3">
-              <button
-                onClick={() =>
-                  exportCSV(
-                    result.trades.map((t, i) => ({
-                      trade: i + 1,
-                      entryPrice: t.entryPrice,
-                      exitPrice: t.exitPrice,
-                      pnl: t.pnl,
-                    })),
-                    `${strategy}-trades.csv`
-                  )
-                }
-                className="text-xs px-3 py-1 rounded bg-panel border"
-              >
-                Export Trades CSV
-              </button>
+            <button
+              onClick={() =>
+                exportCSV(
+                  result.trades.map((t, i) => ({ i, ...t })),
+                  `${strategy}-trades.csv`
+                )
+              }
+            >
+              Export Trades CSV
+            </button>
 
-              <button
-                onClick={() =>
-                  exportCSV(
-                    result.equityCurve.map((v, i) => ({
-                      step: i,
-                      equity: v,
-                    })),
-                    `${strategy}-equity.csv`
-                  )
-                }
-                className="text-xs px-3 py-1 rounded bg-panel border"
-              >
-                Export Equity CSV
-              </button>
-            </div>
-
-            {/* EQUITY CURVE */}
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={result.equityCurve.map((v, i) => ({
-                    step: i,
-                    equity: v,
-                  }))}
-                >
-                  <XAxis dataKey="step" />
+                <LineChart data={result.equityCurve.map((v, i) => ({ i, v }))}>
+                  <XAxis dataKey="i" />
                   <YAxis />
                   <Tooltip />
-                  <Line dataKey="equity" stroke="#22c55e" dot={false} />
+                  <Line dataKey="v" stroke="#22c55e" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
         ))}
+
+      {/* HISTORY */}
+      {history.length > 0 && (
+        <div className="border p-4 rounded">
+          <h3>History</h3>
+          {history.map((h) => (
+            <div
+              key={h.id}
+              className="cursor-pointer"
+              onClick={() => setResults(h.res)}
+            >
+              {h.time}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
