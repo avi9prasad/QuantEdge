@@ -9,6 +9,34 @@ import {
 } from "recharts";
 
 /* =======================
+   CSV EXPORT
+======================= */
+
+function exportCSV(rows: Record<string, any>[], filename: string) {
+  if (!rows || rows.length === 0) return;
+
+  const headers = Object.keys(rows[0]).join(",");
+  const values = rows
+    .map((row) =>
+      Object.values(row)
+        .map((v) => `"${v}"`)
+        .join(",")
+    )
+    .join("\n");
+
+  const csv = `${headers}\n${values}`;
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+/* =======================
    TYPES
 ======================= */
 
@@ -141,6 +169,41 @@ export default function Backtesting() {
             <h2 className="font-semibold text-textPrimary">
               {strategy} — P&L ₹{result.totalPnL}
             </h2>
+
+            {/* CSV EXPORT BUTTONS */}
+            <div className="flex gap-3">
+              <button
+                onClick={() =>
+                  exportCSV(
+                    result.trades.map((t, i) => ({
+                      trade: i + 1,
+                      entryPrice: t.entryPrice,
+                      exitPrice: t.exitPrice,
+                      pnl: t.pnl,
+                    })),
+                    `${strategy}-trades.csv`
+                  )
+                }
+                className="text-xs px-3 py-1 rounded bg-panel border border-panelBorder"
+              >
+                Export Trades CSV
+              </button>
+
+              <button
+                onClick={() =>
+                  exportCSV(
+                    result.equityCurve.map((v, i) => ({
+                      step: i,
+                      equity: v,
+                    })),
+                    `${strategy}-equity.csv`
+                  )
+                }
+                className="text-xs px-3 py-1 rounded bg-panel border border-panelBorder"
+              >
+                Export Equity CSV
+              </button>
+            </div>
 
             {/* Equity Curve */}
             {result.equityCurve.length > 1 && (
