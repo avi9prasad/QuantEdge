@@ -32,7 +32,6 @@ function exportCSV(rows: Record<string, any>[], filename: string) {
   a.href = url;
   a.download = filename;
   a.click();
-
   URL.revokeObjectURL(url);
 }
 
@@ -106,10 +105,14 @@ function meanReversionStrategy(data: Candle[]): Trade[] {
 }
 
 /* =======================
-   BACKTEST ENGINE
+   BACKTEST ENGINE (PARAMETERIZED)
 ======================= */
 
-function runMultiStrategyBacktest(): Record<string, StrategyResult> {
+function runMultiStrategyBacktest(
+  capital: number,
+  lotSize: number,
+  fee: number
+): Record<string, StrategyResult> {
   const data = generateMarketData();
 
   const strategies = {
@@ -120,19 +123,19 @@ function runMultiStrategyBacktest(): Record<string, StrategyResult> {
   const results: Record<string, StrategyResult> = {};
 
   Object.entries(strategies).forEach(([name, fn]) => {
-    let equity = 100000;
+    let equity = capital;
     const trades = fn(data);
     const curve = [equity];
 
     trades.forEach((t) => {
-      equity += t.pnl * 100;
+      equity += t.pnl * lotSize - fee;
       curve.push(Number(equity.toFixed(2)));
     });
 
     results[name] = {
       trades,
       equityCurve: curve,
-      totalPnL: Number((equity - 100000).toFixed(2)),
+      totalPnL: Number((equity - capital).toFixed(2)),
     };
   });
 
@@ -144,6 +147,11 @@ function runMultiStrategyBacktest(): Record<string, StrategyResult> {
 ======================= */
 
 export default function Backtesting() {
+  // ✅ STATE MUST BE INSIDE COMPONENT
+  const [capital, setCapital] = useState(100000);
+  const [lotSize, setLotSize] = useState(100);
+  const [fee, setFee] = useState(20);
+
   const [results, setResults] =
     useState<Record<string, StrategyResult> | null>(null);
 
@@ -153,8 +161,35 @@ export default function Backtesting() {
         Backtesting
       </h1>
 
+      {/* PARAMETERS */}
+      <div className="flex gap-4 text-sm">
+        <input
+          type="number"
+          value={capital}
+          onChange={(e) => setCapital(+e.target.value)}
+          className="bg-panel border p-2 rounded w-32"
+          placeholder="Capital"
+        />
+        <input
+          type="number"
+          value={lotSize}
+          onChange={(e) => setLotSize(+e.target.value)}
+          className="bg-panel border p-2 rounded w-32"
+          placeholder="Lot Size"
+        />
+        <input
+          type="number"
+          value={fee}
+          onChange={(e) => setFee(+e.target.value)}
+          className="bg-panel border p-2 rounded w-24"
+          placeholder="Fee"
+        />
+      </div>
+
       <button
-        onClick={() => setResults(runMultiStrategyBacktest())}
+        onClick={() =>
+          setResults(runMultiStrategyBacktest(capital, lotSize, fee))
+        }
         className="bg-primary text-black px-4 py-2 rounded font-semibold"
       >
         Run Multi-Strategy Backtest
@@ -170,7 +205,7 @@ export default function Backtesting() {
               {strategy} — P&L ₹{result.totalPnL}
             </h2>
 
-            {/* CSV EXPORT BUTTONS */}
+            {/* CSV BUTTONS */}
             <div className="flex gap-3">
               <button
                 onClick={() =>
@@ -184,7 +219,7 @@ export default function Backtesting() {
                     `${strategy}-trades.csv`
                   )
                 }
-                className="text-xs px-3 py-1 rounded bg-panel border border-panelBorder"
+                className="text-xs px-3 py-1 rounded bg-panel border"
               >
                 Export Trades CSV
               </button>
@@ -199,64 +234,28 @@ export default function Backtesting() {
                     `${strategy}-equity.csv`
                   )
                 }
-                className="text-xs px-3 py-1 rounded bg-panel border border-panelBorder"
+                className="text-xs px-3 py-1 rounded bg-panel border"
               >
                 Export Equity CSV
               </button>
             </div>
 
-            {/* Equity Curve */}
-            {result.equityCurve.length > 1 && (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={result.equityCurve.map((v, i) => ({
-                      step: i,
-                      equity: v,
-                    }))}
-                  >
-                    <XAxis dataKey="step" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      dataKey="equity"
-                      stroke="#22c55e"
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Trade Table */}
-            {result.trades.length > 0 && (
-              <table className="w-full text-sm">
-                <thead className="text-textMuted">
-                  <tr>
-                    <th>Entry</th>
-                    <th>Exit</th>
-                    <th>P&L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.trades.map((t, i) => (
-                    <tr key={`${strategy}-trade-${i}`}>
-                      <td>{t.entryPrice}</td>
-                      <td>{t.exitPrice}</td>
-                      <td
-                        className={
-                          t.pnl >= 0
-                            ? "text-primary"
-                            : "text-danger"
-                        }
-                      >
-                        {t.pnl}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            {/* EQUITY CURVE */}
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={result.equityCurve.map((v, i) => ({
+                    step: i,
+                    equity: v,
+                  }))}
+                >
+                  <XAxis dataKey="step" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line dataKey="equity" stroke="#22c55e" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         ))}
     </div>
